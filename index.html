@@ -1,1 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="麻雀点数">
+<title>麻雀点数計算</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;max-width:480px;margin:0 auto;min-height:100vh}
+.header{background:#fff;border-bottom:1px solid #e0e0e0;padding:12px 16px;position:sticky;top:0;z-index:10}
+.header h1{font-size:17px;font-weight:600;text-align:center}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #e0e0e0}
+.tab{flex:1;padding:10px 4px;font-size:12px;text-align:center;cursor:pointer;border:none;background:none;color:#888;border-bottom:2px solid transparent}
+.tab.active{color:#1a1a1a;border-bottom:2px solid #1a1a1a;font-weight:600}
+.content{padding:16px;display:none}
+.content.active{display:block}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+label{font-size:13px;color:#666;min-width:70px}
+select,input[type=number],input[type=text]{font-size:15px;padding:8px 10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;flex:1;-webkit-appearance:none;appearance:none}
+.result{background:#f0f0f0;border-radius:12px;padding:16px;text-align:center;margin-top:8px}
+.result-num{font-size:36px;font-weight:700;color:#1a1a1a}
+.result-sub{font-size:13px;color:#666;margin-top:4px}
+.btn{padding:12px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#1a1a1a;cursor:pointer;font-size:15px;font-weight:500}
+.btn-primary{background:#1a1a1a;color:#fff;border-color:transparent;width:100%}
+.section-title{font-size:15px;font-weight:600;margin-bottom:12px}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.filter-btn{padding:6px 12px;border:1px solid #ddd;border-radius:20px;background:#fff;color:#666;cursor:pointer;font-size:13px}
+.filter-btn.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;background:#f5f5f5;color:#666;font-weight:500}
+td{padding:8px 10px;border-top:1px solid #f0f0f0;vertical-align:top}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.b-red{background:#fee;color:#c00}
+.b-blue{background:#e8f0fe;color:#1a56db}
+.b-amber{background:#fff3e0;color:#b45309}
+.b-gray{background:#f5f5f5;color:#555}
+.b-green{background:#e6f4ea;color:#1e6b3c}
+.player-grid{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;margin-bottom:8px}
+.rank-badge{display:inline-block;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:700;margin-right:6px}
+.r1{background:#FFD700;color:#7a5c00}
+.r2{background:#C0C0C0;color:#444}
+.r3{background:#cd7f32;color:#fff}
+.r4{background:#eee;color:#888}
+.pos{color:#1e6b3c;font-weight:600}
+.neg{color:#c00;font-weight:600}
+.history-item{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.h-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.h-player{font-size:11px;color:#888}
+.h-score{font-size:16px;font-weight:700}
+.total-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
+.metric{background:#fff;border-radius:10px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.metric-val{font-size:22px;font-weight:700}
+.metric-lbl{font-size:12px;color:#888;margin-top:2px}
+.empty{text-align:center;color:#aaa;padding:40px 0;font-size:14px}
+</style>
+</head>
+<body>
+<div class="header"><h1>🀄 麻雀点数計算</h1></div>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('score')">点数計算</button>
+  <button class="tab" onclick="switchTab('seisan')">半荘精算</button>
+  <button class="tab" onclick="switchTab('yaku')">役一覧</button>
+  <button class="tab" onclick="switchTab('history')">記録</button>
+</div>
 
+<!-- 点数計算 -->
+<div id="tab-score" class="content active">
+  <div class="card">
+    <div class="row"><label>親／子</label>
+      <select id="s-oya" onchange="calcScore()"><option value="ko">子（コ）</option><option value="oya">親（オヤ）</option></select></div>
+    <div class="row"><label>和了</label>
+      <select id="s-agari" onchange="calcScore()"><option value="ron">ロン</option><option value="tsumo">ツモ</option></select></div>
+    <div class="row"><label>翻数</label>
+      <select id="s-han" onchange="calcScore()">
+        <option value="1">1翻</option><option value="2">2翻</option><option value="3">3翻</option>
+        <option value="4">4翻</option><option value="5">満貫</option><option value="6">跳満</option>
+        <option value="8">倍満</option><option value="11">三倍満</option><option value="13">役満</option>
+      </select></div>
+    <div class="row" id="fu-row"><label>符数</label>
+      <select id="s-fu" onchange="calcScore()">
+        <option value="20">20符</option><option value="25">25符（七対子）</option>
+        <option value="30" selected>30符</option><option value="40">40符</option>
+        <option value="50">50符</option><option value="60">60符</option>
+        <option value="70">70符</option><option value="80">80符</option>
+      </select></div>
+    <div class="row"><label>本場</label>
+      <input type="number" id="s-honba" value="0" min="0" max="20" onchange="calcScore()" style="flex:0 0 70px">
+      <span style="font-size:13px;color:#888">本場（×300点）</span></div>
+  </div>
+  <div class="result">
+    <div class="result-num" id="res-main">—</div>
+    <div class="result-sub" id="res-sub">翻数と符数を選択</div>
+    <div id="res-detail" style="font-size:13px;color:#888;margin-top:6px"></div>
+  </div>
+</div>
+
+<!-- 半荘精算 -->
+<div id="tab-seisan" class="content">
+  <div class="card">
+    <div class="section-title">設定</div>
+    <div class="row"><label>ウマ</label>
+      <select id="uma-preset" onchange="calcSeisan()">
+        <option value="10-30">10-30（一般的）</option>
+        <option value="5-10">5-10（小場）</option>
+        <option value="20-40">20-40（大場）</option>
+        <option value="0-30">0-30</option>
+      </select></div>
+    <div class="row"><label>持ち点</label>
+      <select id="mochi" onchange="calcSeisan()"><option value="25000">25000</option><option value="30000">30000</option></select></div>
+    <div class="row"><label>返し点</label>
+      <select id="kaeshi" onchange="calcSeisan()"><option value="30000">30000</option><option value="25000">25000</option></select></div>
+  </div>
+  <div class="card">
+    <div class="section-title">最終点数</div>
+    <div id="player-inputs"></div>
+    <button class="btn btn-primary" onclick="calcSeisan()" style="margin-top:8px">精算する</button>
+  </div>
+  <div id="seisan-result" style="display:none">
+    <div class="card">
+      <div class="section-title">精算結果</div>
+      <div id="seisan-table"></div>
+    </div>
+    <button class="btn" style="width:100%;margin-top:4px" onclick="saveHistory()">📝 記録に保存</button>
+  </div>
+</div>
+
+<!-- 役一覧 -->
+<div id="tab-yaku" class="content">
+  <div class="filter-row" id="yaku-filters">
+    <button class="filter-btn active" onclick="filterYaku('all',this)">すべて</button>
+    <button class="filter-btn" onclick="filterYaku('1',this)">1翻</button>
+    <button class="filter-btn" onclick="filterYaku('2',this)">2翻</button>
+    <button class="filter-btn" onclick="filterYaku('3+',this)">3翻以上</button>
+    <button class="filter-btn" onclick="filterYaku('mangan',this)">役満</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table><thead><tr><th>役名</th><th>翻</th><th>鳴き</th></tr></thead>
+    <tbody id="yaku-body"></tbody></table>
+  </div>
+</div>
+
+<!-- 記録 -->
+<div id="tab-history" class="content">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div class="section-title" style="margin:0">半荘記録</div>
+    <button class="btn" onclick="clearHistory()" style="font-size:13px;padding:6px 12px;color:#c00">消去</button>
+  </div>
+  <div id="history-total" style="display:none">
+    <div class="section-title">累計成績</div>
+    <div class="total-grid" id="total-grid"></div>
+  </div>
+  <div id="history-list"></div>
+  <div id="no-history" class="empty">📭 記録はまだありません</div>
+</div>
+
+<script>
+const ST={ko:{ron:{30:{1:1000,2:2000,3:3900,4:7700},40:{1:1300,2:2600,3:5200,4:10600},50:{1:1600,2:3200,3:6400},60:{1:2000,2:3900,3:7700},70:{1:2300,2:4500,3:9000},80:{1:2600,2:5200}},tsumo:{20:{1:'200/400',2:'400/700'},30:{1:'300/500',2:'500/1000',3:'1000/2000',4:'2000/3900'},40:{1:'400/700',2:'700/1300',3:'1300/2600',4:'2600/5200'},50:{1:'400/800',2:'800/1600',3:'1600/3200'},60:{1:'500/1000',2:'1000/2000',3:'2000/3900'},70:{1:'600/1200',2:'1200/2300',3:'2300/4500'},80:{1:'700/1300',2:'1300/2600'}}},oya:{ron:{30:{1:1500,2:2900,3:5800,4:11600},40:{1:2000,2:3900,3:7700},50:{1:2400,2:4800,3:9600},60:{1:2900,2:5800,3:11600},70:{1:3400,2:6800},80:{1:3900,2:7700}},tsumo:{30:{1:'500all',2:'1000all',3:'2000all',4:'3900all'},40:{1:'700all',2:'1300all',3:'2600all'},50:{1:'800all',2:'1600all',3:'3200all'},60:{1:'1000all',2:'2000all',3:'3900all'},70:{1:'1200all',2:'2300all'},80:{1:'1300all',2:'2600all'}}}};
+const MG={ko:{ron:{5:8000,6:12000,8:16000,11:24000,13:32000},tsumo:{5:'2000all',6:'3000all',8:'4000all',11:'6000all',13:'8000all'}},oya:{ron:{5:12000,6:18000,8:24000,11:36000,13:48000},tsumo:{5:'4000all',6:'6000all',8:'8000all',11:'12000all',13:'16000all'}}};
+const MN={5:'満貫',6:'跳満',8:'倍満',11:'三倍満',13:'役満'};
+
+function calcScore(){
+  const oya=document.getElementById('s-oya').value;
+  const agari=document.getElementById('s-agari').value;
+  const han=parseInt(document.getElementById('s-han').value);
+  const fu=parseInt(document.getElementById('s-fu').value);
+  const honba=parseInt(document.getElementById('s-honba').value)||0;
+  document.getElementById('fu-row').style.display=han>=5?'none':'flex';
+  const m=document.getElementById('res-main');
+  const s=document.getElementById('res-sub');
+  const d=document.getElementById('res-detail');
+  d.textContent='';
+  if(han>=5){
+    const v=MG[oya][agari][han];
+    const hb=agari==='ron'?honba*300:0;
+    m.textContent=typeof v==='number'?(v+hb).toLocaleString()+'点':v+(honba>0?' +'+honba*100+'/人':'');
+    s.textContent=MN[han]+'・'+(agari==='ron'?'ロン':'ツモ');
+  } else {
+    const tbl=agari==='ron'?ST[oya].ron:ST[oya].tsumo;
+    const fd=tbl[fu];
+    if(!fd||!fd[han]){m.textContent='—';s.textContent='この組み合わせは存在しません';return;}
+    const v=fd[han];
+    if(agari==='ron'){
+      m.textContent=(v+honba*300).toLocaleString()+'点';
+      s.textContent=(oya==='oya'?'親':'子')+' '+fu+'符 '+han+'翻 ロン';
+      if(honba>0)d.textContent='本場ボーナス +'+honba*300+'点含む';
+    } else {
+      m.textContent=v;
+      s.textContent=(oya==='oya'?'親':'子')+' '+fu+'符 '+han+'翻 ツモ';
+      if(honba>0)d.textContent='本場 +'+honba*100+'点/人';
+    }
+  }
+}
+
+let umaVals=[30,10,-10,-30];
+function initPlayers(){
+  const names=['東家','南家','西家','北家'];
+  const c=document.getElementById('player-inputs');
+  c.innerHTML='';
+  for(let i=0;i<4;i++){
+    const d=document.createElement('div');
+    d.className='player-grid';
+    d.innerHTML=`<input type="text" class="p-name" value="${names[i]}" placeholder="${names[i]}">
+      <input type="number" class="p-score" value="25000" min="0" max="99999">`;
+    c.appendChild(d);
+  }
+}
+
+function calcSeisan(){
+  const preset=document.getElementById('uma-preset').value;
+  const mp={'10-30':[30,10,-10,-30],'5-10':[10,5,-5,-10],'20-40':[40,20,-20,-40],'0-30':[30,0,0,-30]};
+  umaVals=mp[preset];
+  const kaeshi=parseInt(document.getElementById('kaeshi').value);
+  const mochi=parseInt(document.getElementById('mochi').value);
+  const rows=document.querySelectorAll('.player-grid');
+  const players=Array.from(rows).map((r,i)=>({name:r.querySelector('.p-name').value||['東家','南家','西家','北家'][i],score:parseInt(r.querySelector('.p-score').value)||0,idx:i}));
+  const ranked=[...players].sort((a,b)=>b.score-a.score);
+  const oka=(kaeshi-mochi)*4/1000;
+  ranked.forEach((p,rank)=>{
+    p.base=Math.round((p.score-kaeshi)/1000);
+    p.uma=umaVals[rank];
+    p.rank=rank+1;
+    p.final=p.base+p.uma+(rank===0?oka:0);
+  });
+  const rc=['r1','r2','r3','r4'];
+  const html=ranked.map(p=>{
+    const f=Math.round(p.final);
+    const cls=f>0?'pos':f<0?'neg':'';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #f0f0f0">
+      <div><span class="rank-badge ${rc[p.rank-1]}">${p.rank}</span>${p.name}</div>
+      <div style="text-align:right">
+        <div class="${cls}" style="font-size:20px">${f>=0?'+':''}${f}</div>
+        <div style="font-size:12px;color:#aaa">${p.score.toLocaleString()}点</div>
+      </div></div>`;
+  }).join('');
+  document.getElementById('seisan-table').innerHTML=html;
+  document.getElementById('seisan-result').style.display='block';
+  window._seisan=ranked;
+}
+
+const YAKU=[
+  {name:'立直',han:'1',naki:'不可',desc:'門前でリーチ宣言'},
+  {name:'門前清自摸和',han:'1',naki:'不可',desc:'門前でツモ'},
+  {name:'平和',han:'1',naki:'不可',desc:'すべて順子・両面待ち'},
+  {name:'断么九',han:'1',naki:'1',desc:'1・9・字牌なし'},
+  {name:'役牌（三元牌）',han:'1',naki:'1',desc:'中・発・白の刻子'},
+  {name:'役牌（場風）',han:'1',naki:'1',desc:'場の風牌の刻子'},
+  {name:'役牌（自風）',han:'1',naki:'1',desc:'自分の風牌の刻子'},
+  {name:'一盃口',han:'1',naki:'不可',desc:'同じ順子が2組'},
+  {name:'海底摸月',han:'1',naki:'1',desc:'最後の牌でツモ'},
+  {name:'河底撈魚',han:'1',naki:'1',desc:'最後の捨て牌でロン'},
+  {name:'槍槓',han:'1',naki:'1',desc:'加槓の牌でロン'},
+  {name:'嶺上開花',han:'1',naki:'1',desc:'槓後のツモで和了'},
+  {name:'三色同順',han:'2',naki:'1',desc:'三色で同じ順子'},
+  {name:'三色同刻',han:'2',naki:'2',desc:'三色で同じ刻子'},
+  {name:'一気通貫',han:'2',naki:'1',desc:'123・456・789を一色で'},
+  {name:'七対子',han:'2',naki:'不可',desc:'7種の対子（25符固定）'},
+  {name:'対々和',han:'2',naki:'2',desc:'すべて刻子'},
+  {name:'三暗刻',han:'2',naki:'2',desc:'暗刻が3組'},
+  {name:'小三元',han:'2',naki:'2',desc:'三元牌を2刻子+1雀頭'},
+  {name:'混全帯么九',han:'2',naki:'1',desc:'各面子に1・9・字牌'},
+  {name:'二盃口',han:'3',naki:'不可',desc:'同じ順子が2組×2'},
+  {name:'混一色',han:'3',naki:'2',desc:'一色＋字牌'},
+  {name:'純全帯么九',han:'3',naki:'2',desc:'各面子に1か9'},
+  {name:'清一色',han:'6',naki:'5',desc:'すべて一色'},
+  {name:'天和',han:'役満',naki:'不可',desc:'親が配牌で和了'},
+  {name:'地和',han:'役満',naki:'不可',desc:'子が第一ツモで和了'},
+  {name:'大三元',han:'役満',naki:'役満',desc:'三元牌を3刻子'},
+  {name:'四暗刻',han:'役満',naki:'不可',desc:'暗刻4組'},
+  {name:'国士無双',han:'役満',naki:'不可',desc:'么九牌13種＋1'},
+  {name:'字一色',han:'役満',naki:'役満',desc:'すべて字牌'},
+  {name:'緑一色',han:'役満',naki:'役満',desc:'發と特定の牌のみ'},
+  {name:'九蓮宝燈',han:'役満',naki:'不可',desc:'一色で特定の形'},
+  {name:'清老頭',han:'役満',naki:'役満',desc:'すべて1か9'},
+  {name:'四槓子',han:'役満',naki:'役満',desc:'槓子4組'},
+  {name:'小四喜',han:'役満',naki:'役満',desc:'風牌3刻子＋1雀頭'},
+  {name:'大四喜',han:'W役満',naki:'W役満',desc:'風牌4刻子'},
+];
+
+function renderYaku(f){
+  const filtered=YAKU.filter(y=>{
+    if(f==='all')return true;
+    if(f==='mangan')return y.han.includes('役満');
+    if(f==='1')return y.han==='1';
+    if(f==='2')return y.han==='2';
+    if(f==='3+')return['3','4','5','6'].includes(y.han);
+    return true;
+  });
+  document.getElementById('yaku-body').innerHTML=filtered.map(y=>{
+    const hc=y.han.includes('役満')?'b-red':parseInt(y.han)>=3?'b-amber':y.han==='2'?'b-blue':'b-gray';
+    const nc=y.naki==='不可'?'b-red':y.naki==='役満'?'b-amber':'b-green';
+    return`<tr><td><strong>${y.name}</strong><br><span style="font-size:11px;color:#888">${y.desc}</span></td>
+      <td><span class="badge ${hc}">${y.han}</span></td>
+      <td><span class="badge ${nc}">${y.naki}</span></td></tr>`;
+  }).join('');
+}
+
+function filterYaku(f,btn){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderYaku(f);
+}
+
+let history=[];
+function saveHistory(){
+  if(!window._seisan)return;
+  history.unshift({date:new Date().toLocaleDateString('ja-JP'),uma:document.getElementById('uma-preset').value,players:window._seisan.map(p=>({name:p.name,score:p.score,final:Math.round(p.final),rank:p.rank}))});
+  renderHistory();
+  switchTab('history');
+}
+
+function renderHistory(){
+  const list=document.getElementById('history-list');
+  const noH=document.getElementById('no-history');
+  const tot=document.getElementById('history-total');
+  if(!history.length){noH.style.display='block';list.innerHTML='';tot.style.display='none';return;}
+  noH.style.display='none';
+  tot.style.display='block';
+  const names=[...new Set(history.flatMap(h=>h.players.map(p=>p.name)))];
+  const totals={};names.forEach(n=>totals[n]=0);
+  history.forEach(h=>h.players.forEach(p=>{if(totals[p.name]!==undefined)totals[p.name]+=p.final;}));
+  document.getElementById('total-grid').innerHTML=names.slice(0,4).map(n=>{
+    const v=Math.round(totals[n]);
+    return`<div class="metric"><div class="metric-val ${v>0?'pos':v<0?'neg':''}">${v>=0?'+':''}${v}</div><div class="metric-lbl">${n}</div></div>`;
+  }).join('');
+  const rc=['r1','r2','r3','r4'];
+  list.innerHTML=history.map((h,i)=>`
+    <div class="history-item">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:600">第${history.length-i}回</span>
+        <span style="font-size:12px;color:#aaa">${h.date} / ウマ${h.uma}</span>
+      </div>
+      <div class="h-grid">
+        ${[...h.players].sort((a,b)=>a.rank-b.rank).map(p=>`
+          <div><div class="h-player"><span class="rank-badge ${rc[p.rank-1]}" style="width:18px;height:18px;line-height:18px;font-size:10px">${p.rank}</span>${p.name}</div>
+          <div class="h-score ${p.final>0?'pos':p.final<0?'neg':''}">${p.final>=0?'+':''}${p.final}</div>
+          <div style="font-size:11px;color:#aaa">${p.score.toLocaleString()}</div></div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function clearHistory(){if(!history.length)return;if(confirm('記録をすべて消去しますか？')){history=[];renderHistory();}}
+
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  const idx=['score','seisan','yaku','history'].indexOf(t);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+}
+
+initPlayers();
+calcScore();
+renderYaku('all');
+renderHistory();
+</script>
+</body>
+</html>
