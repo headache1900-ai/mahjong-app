@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="麻雀点数">
+<title>麻雀点数計算</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;max-width:480px;margin:0 auto;min-height:100vh}
+.header{background:#fff;border-bottom:1px solid #e0e0e0;padding:12px 16px;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:17px;font-weight:600;flex:1;text-align:center}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #e0e0e0;overflow-x:auto}
+.tab{flex:0 0 auto;padding:10px 10px;font-size:11px;text-align:center;cursor:pointer;border:none;background:none;color:#888;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.active{color:#1a1a1a;border-bottom:2px solid #1a1a1a;font-weight:600}
+.content{padding:16px;display:none}
+.content.active{display:block}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.row{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+label{font-size:13px;color:#666;min-width:70px}
+select,input[type=number],input[type=text]{font-size:15px;padding:8px 10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;flex:1;-webkit-appearance:none;appearance:none}
+.result{background:#f0f0f0;border-radius:12px;padding:16px;text-align:center;margin-top:8px}
+.result-num{font-size:36px;font-weight:700;color:#1a1a1a}
+.result-sub{font-size:13px;color:#666;margin-top:4px}
+.btn{padding:12px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#1a1a1a;cursor:pointer;font-size:15px;font-weight:500}
+.btn-sm{padding:6px 14px;font-size:13px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;cursor:pointer}
+.btn-primary{background:#1a1a1a;color:#fff;border-color:transparent;width:100%}
+.btn-danger{background:#fff;color:#c00;border-color:#fcc}
+.section-title{font-size:15px;font-weight:600;margin-bottom:12px}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.filter-btn{padding:6px 12px;border:1px solid #ddd;border-radius:20px;background:#fff;color:#666;cursor:pointer;font-size:13px}
+.filter-btn.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;background:#f5f5f5;color:#666;font-weight:500}
+td{padding:8px 10px;border-top:1px solid #f0f0f0;vertical-align:top}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.b-red{background:#fee;color:#c00}.b-blue{background:#e8f0fe;color:#1a56db}
+.b-amber{background:#fff3e0;color:#b45309}.b-gray{background:#f5f5f5;color:#555}.b-green{background:#e6f4ea;color:#1e6b3c}
+.rank-badge{display:inline-block;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:700;margin-right:6px}
+.r1{background:#FFD700;color:#7a5c00}.r2{background:#C0C0C0;color:#444}.r3{background:#cd7f32;color:#fff}.r4{background:#eee;color:#888}.r5{background:#ddd;color:#666}
+.pos{color:#1e6b3c;font-weight:600}.neg{color:#c00;font-weight:600}
+.empty{text-align:center;color:#aaa;padding:40px 0;font-size:14px}
+.toggle-group{display:flex;border:1px solid #ddd;border-radius:8px;overflow:hidden}
+.toggle-btn{flex:1;padding:8px;font-size:13px;border:none;background:#fff;cursor:pointer;color:#888}
+.toggle-btn.active{background:#1a1a1a;color:#fff}
+.member-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid #ddd;border-radius:20px;font-size:13px;margin:4px;cursor:pointer;background:#fff}
+.member-chip.selected{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.session-item{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.08);cursor:pointer}
+.hanza-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #f0f0f0;font-size:13px}
+.fu-section{background:#f8f8f8;border-radius:10px;padding:12px;margin-bottom:10px}
+.fu-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eee}
+.fu-row:last-child{border-bottom:none}
+.fu-total{background:#1a1a1a;color:#fff;border-radius:10px;padding:14px;text-align:center;margin-top:12px}
+.chip-player-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #e0e0e0}
+.chip-player-row:last-child{border-bottom:none}
+canvas{width:100%;border-radius:8px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:flex-end}
+.modal{background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:16px;text-align:center}
+.player-result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #f0f0f0}
+</style>
+</head>
+<body>
+<div class="header">
+  <div style="width:60px"></div>
+  <h1>🀄 麻雀点数計算</h1>
+  <div style="width:60px;text-align:right" id="session-badge"></div>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('session')">セッション</button>
+  <button class="tab" onclick="switchTab('score')">点数計算</button>
+  <button class="tab" onclick="switchTab('fu')">符計算</button>
+  <button class="tab" onclick="switchTab('chip')">チップ</button>
+  <button class="tab" onclick="switchTab('basho')">場代</button>
+  <button class="tab" onclick="switchTab('yaku')">役一覧</button>
+  <button class="tab" onclick="switchTab('history')">記録</button>
+</div>
+
+<!-- セッション -->
+<div id="tab-session" class="content active">
+  <!-- セッション未開始 -->
+  <div id="session-start-area">
+    <div class="card">
+      <div class="section-title">新しいセッションを開始</div>
+      <div class="row"><label>メンバー</label></div>
+      <div id="member-list" style="margin-bottom:12px"></div>
+      <button class="btn-sm" onclick="addMember()" style="margin-bottom:12px;width:100%">＋ メンバー追加（最大5人）</button>
+      <div class="row"><label>人数</label>
+        <div class="toggle-group">
+          <button class="toggle-btn" id="snin3" onclick="setSNin(3)">3人</button>
+          <button class="toggle-btn active" id="snin4" onclick="setSNin(4)">4人</button>
+        </div></div>
+      <div class="row"><label>ウマ</label>
+        <select id="s-uma">
+          <option value="10-30">10-30（4人）</option>
+          <option value="5-10">5-10</option>
+          <option value="20-40">20-40</option>
+          <option value="10-20">10-20（3人）</option>
+          <option value="0-20">0-20（3人）</option>
+        </select></div>
+      <div id="s-mochi-row" class="row"><label>持ち点</label>
+        <select id="s-mochi"><option value="25000">25000点</option><option value="30000">30000点</option></select></div>
+      <div id="s-kaeshi-row" class="row"><label>返し点</label>
+        <select id="s-kaeshi"><option value="30000">30000点</option><option value="25000">25000点</option></select></div>
+      <div class="row"><label>レート</label>
+        <input type="number" id="s-rate" value="100" min="0">
+        <span style="font-size:13px;color:#888">円/1000点</span></div>
+      <div class="row"><label>飛び賞</label>
+        <input type="number" id="s-tobi" value="0" min="0">
+        <span style="font-size:13px;color:#888">円（0で無効）</span></div>
+      <button class="btn btn-primary" onclick="startSession()" style="margin-top:4px">セッション開始</button>
+    </div>
+  </div>
+
+  <!-- セッション進行中 -->
+  <div id="session-active-area" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section-title" style="margin:0" id="session-title-text">セッション</div>
+        <button class="btn-sm btn-danger" onclick="abortSession()">中断</button>
+      </div>
+      <div style="font-size:13px;color:#888" id="session-info-text"></div>
+    </div>
+
+    <!-- 累計グラフ -->
+    <div class="card" id="graph-card" style="display:none">
+      <div class="section-title">📈 累計推移</div>
+      <canvas id="scoreChart" height="200"></canvas>
+      <div id="graph-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:12px"></div>
+    </div>
+
+    <!-- 現在の累計 -->
+    <div class="card">
+      <div class="section-title">現在の累計</div>
+      <div id="current-totals"></div>
+    </div>
+
+    <!-- 半荘追加 -->
+    <div class="card">
+      <div class="section-title">半荘を追加</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:13px;color:#666;margin-bottom:6px">参加メンバーを選択</div>
+        <div id="hanza-member-select"></div>
+      </div>
+      <div id="hanza-inputs"></div>
+      <button class="btn btn-primary" onclick="addHanza()" style="margin-top:8px">この半荘を記録する</button>
+    </div>
+
+    <!-- 半荘履歴 -->
+    <div class="card" id="hanza-history-card" style="display:none">
+      <div class="section-title">半荘履歴</div>
+      <div id="hanza-history-list"></div>
+    </div>
+
+    <!-- トータル精算 -->
+    <div class="card" style="border:2px solid #1a1a1a">
+      <div class="section-title">🏁 トータル精算</div>
+      <div class="row"><label>場代</label>
+        <input type="number" id="s-basho" value="0" min="0" onchange="calcTotalSeisan()">
+        <span style="font-size:13px;color:#888">円/人・半荘</span></div>
+      <div id="total-seisan-content"></div>
+      <button class="btn btn-primary" onclick="calcTotalSeisan()" style="margin-top:8px">精算を計算する</button>
+      <button class="btn btn-primary" onclick="confirmEndSession()" style="margin-top:8px;background:#1e6b3c">✅ 精算してセッション保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 点数計算 -->
+<div id="tab-score" class="content">
+  <div class="card">
+    <div class="row"><label>親／子</label>
+      <select id="sc-oya" onchange="calcScore()"><option value="ko">子（コ）</option><option value="oya">親（オヤ）</option></select></div>
+    <div class="row"><label>和了</label>
+      <select id="sc-agari" onchange="calcScore()"><option value="ron">ロン</option><option value="tsumo">ツモ</option></select></div>
+    <div class="row"><label>翻数</label>
+      <select id="sc-han" onchange="calcScore()">
+        <option value="1">1翻</option><option value="2">2翻</option><option value="3">3翻</option>
+        <option value="4">4翻</option><option value="5">満貫</option><option value="6">跳満</option>
+        <option value="8">倍満</option><option value="11">三倍満</option><option value="13">役満</option>
+      </select></div>
+    <div class="row" id="sc-fu-row"><label>符数</label>
+      <select id="sc-fu" onchange="calcScore()">
+        <option value="20">20符</option><option value="25">25符（七対子）</option>
+        <option value="30" selected>30符</option><option value="40">40符</option>
+        <option value="50">50符</option><option value="60">60符</option>
+        <option value="70">70符</option><option value="80">80符</option>
+      </select></div>
+    <div class="row"><label>本場</label>
+      <input type="number" id="sc-honba" value="0" min="0" max="20" onchange="calcScore()" style="flex:0 0 70px">
+      <span style="font-size:13px;color:#888">本場（×300点）</span></div>
+  </div>
+  <div class="result">
+    <div class="result-num" id="sc-res-main">—</div>
+    <div class="result-sub" id="sc-res-sub">翻数と符数を選択</div>
+    <div id="sc-res-detail" style="font-size:13px;color:#888;margin-top:6px"></div>
+  </div>
+</div>
+
+<!-- 符計算 -->
+<div id="tab-fu" class="content">
+  <div class="card">
+    <div class="section-title">基本設定</div>
+    <div class="row"><label>和了方法</label>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="fu-ron-btn" onclick="setFuAgari('ron')">ロン</button>
+        <button class="toggle-btn" id="fu-tsumo-btn" onclick="setFuAgari('tsumo')">ツモ</button>
+      </div></div>
+    <div class="row"><label>門前</label>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="fu-menzen-btn" onclick="setFuMenzen(true)">門前</button>
+        <button class="toggle-btn" id="fu-naki-btn" onclick="setFuMenzen(false)">鳴きあり</button>
+      </div></div>
+    <div class="row"><label>雀頭</label>
+      <select id="fu-jantai" onchange="calcFu()">
+        <option value="0">中張牌・客風（0符）</option>
+        <option value="2">役牌（2符）</option>
+      </select></div>
+    <div class="row"><label>待ち</label>
+      <select id="fu-machi" onchange="calcFu()">
+        <option value="0">両面待ち・双碰（0符）</option>
+        <option value="2">嵌張・辺張・単騎（2符）</option>
+      </select></div>
+  </div>
+  <div class="card">
+    <div class="section-title">面子（最大4つ）</div>
+    <div id="mentsu-list"></div>
+    <button class="btn" onclick="addMentsu()" style="width:100%;font-size:14px">＋ 面子を追加</button>
+  </div>
+  <div id="fu-result-area" style="display:none">
+    <div class="fu-section"><div style="font-size:12px;font-weight:600;color:#666;margin-bottom:8px">符の内訳</div><div id="fu-breakdown"></div></div>
+    <div class="fu-total">
+      <div style="font-size:13px;opacity:0.7">合計（切り上げ後）</div>
+      <div style="font-size:40px;font-weight:700" id="fu-total-val">—</div>
+      <div style="font-size:13px;opacity:0.7" id="fu-total-sub"></div>
+    </div>
+  </div>
+</div>
+
+<!-- チップ -->
+<div id="tab-chip" class="content">
+  <div class="card">
+    <div class="section-title">チップ設定</div>
+    <div class="row"><label>1枚の額</label>
+      <input type="number" id="chip-val" value="500" min="1" onchange="calcChip()">
+      <span style="font-size:13px;color:#888">円</span></div>
+  </div>
+  <div class="card">
+    <div class="section-title">各プレイヤーのチップ枚数</div>
+    <div id="chip-players"></div>
+  </div>
+  <div id="chip-result" style="display:none">
+    <div class="card"><div class="section-title">精算結果</div><div id="chip-result-content"></div></div>
+  </div>
+</div>
+
+<!-- 場代 -->
+<div id="tab-basho" class="content">
+  <div class="card">
+    <div class="section-title">場代設定</div>
+    <div class="row"><label>1人あたり</label>
+      <input type="number" id="basho-fee" value="500" min="0" onchange="calcBasho()">
+      <span style="font-size:13px;color:#888">円</span></div>
+    <div class="row"><label>人数</label>
+      <div class="toggle-group">
+        <button class="toggle-btn" onclick="setBashoNin(3,this)">3人</button>
+        <button class="toggle-btn active" onclick="setBashoNin(4,this)">4人</button>
+      </div></div>
+    <div class="row"><label>半荘数</label>
+      <input type="number" id="basho-count" value="1" min="1" max="20" onchange="calcBasho()">
+      <span style="font-size:13px;color:#888">半荘</span></div>
+  </div>
+  <div class="result">
+    <div class="result-num" id="basho-total">—</div>
+    <div class="result-sub">合計場代</div>
+    <div id="basho-detail" style="font-size:13px;color:#888;margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- 役一覧 -->
+<div id="tab-yaku" class="content">
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="filterYaku('all',this)">すべて</button>
+    <button class="filter-btn" onclick="filterYaku('1',this)">1翻</button>
+    <button class="filter-btn" onclick="filterYaku('2',this)">2翻</button>
+    <button class="filter-btn" onclick="filterYaku('3+',this)">3翻以上</button>
+    <button class="filter-btn" onclick="filterYaku('mangan',this)">役満</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table><thead><tr><th>役名</th><th>翻</th><th>鳴き</th></tr></thead>
+    <tbody id="yaku-body"></tbody></table>
+  </div>
+</div>
+
+<!-- 記録 -->
+<div id="tab-history" class="content">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div class="section-title" style="margin:0">セッション記録</div>
+  </div>
+  <div id="history-list"></div>
+  <div id="no-history" class="empty">📭 記録はまだありません</div>
+</div>
+
+<!-- セッション詳細モーダル -->
+<div id="session-modal" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div id="modal-content"></div>
+    <button class="btn" style="width:100%;margin-top:12px" onclick="document.getElementById('session-modal').style.display='none'">閉じる</button>
+  </div>
+</div>
+
+<script>
+// ===== 点数計算 =====
+const ST={ko:{ron:{30:{1:1000,2:2000,3:3900,4:7700},40:{1:1300,2:2600,3:5200,4:10600},50:{1:1600,2:3200,3:6400},60:{1:2000,2:3900,3:7700},70:{1:2300,2:4500,3:9000},80:{1:2600,2:5200}},tsumo:{20:{1:'200/400',2:'400/700'},30:{1:'300/500',2:'500/1000',3:'1000/2000',4:'2000/3900'},40:{1:'400/700',2:'700/1300',3:'1300/2600',4:'2600/5200'},50:{1:'400/800',2:'800/1600',3:'1600/3200'},60:{1:'500/1000',2:'1000/2000',3:'2000/3900'},70:{1:'600/1200',2:'1200/2300',3:'2300/4500'},80:{1:'700/1300',2:'1300/2600'}}},oya:{ron:{30:{1:1500,2:2900,3:5800,4:11600},40:{1:2000,2:3900,3:7700},50:{1:2400,2:4800,3:9600},60:{1:2900,2:5800,3:11600},70:{1:3400,2:6800},80:{1:3900,2:7700}},tsumo:{30:{1:'500all',2:'1000all',3:'2000all',4:'3900all'},40:{1:'700all',2:'1300all',3:'2600all'},50:{1:'800all',2:'1600all',3:'3200all'},60:{1:'1000all',2:'2000all',3:'3900all'},70:{1:'1200all',2:'2300all'},80:{1:'1300all',2:'2600all'}}}};
+const MG={ko:{ron:{5:8000,6:12000,8:16000,11:24000,13:32000},tsumo:{5:'2000all',6:'3000all',8:'4000all',11:'6000all',13:'8000all'}},oya:{ron:{5:12000,6:18000,8:24000,11:36000,13:48000},tsumo:{5:'4000all',6:'6000all',8:'8000all',11:'12000all',13:'16000all'}}};
+const MN={5:'満貫',6:'跳満',8:'倍満',11:'三倍満',13:'役満'};
+function calcScore(){
+  const oya=document.getElementById('sc-oya').value,agari=document.getElementById('sc-agari').value,han=parseInt(document.getElementById('sc-han').value),fu=parseInt(document.getElementById('sc-fu').value),honba=parseInt(document.getElementById('sc-honba').value)||0;
+  document.getElementById('sc-fu-row').style.display=han>=5?'none':'flex';
+  const m=document.getElementById('sc-res-main'),s=document.getElementById('sc-res-sub'),d=document.getElementById('sc-res-detail');d.textContent='';
+  if(han>=5){const v=MG[oya][agari][han];const hb=agari==='ron'?honba*300:0;m.textContent=typeof v==='number'?(v+hb).toLocaleString()+'点':v;s.textContent=MN[han]+'・'+(agari==='ron'?'ロン':'ツモ');}
+  else{const tbl=agari==='ron'?ST[oya].ron:ST[oya].tsumo;const fd=tbl[fu];if(!fd||!fd[han]){m.textContent='—';s.textContent='この組み合わせは存在しません';return;}const v=fd[han];if(agari==='ron'){m.textContent=(v+honba*300).toLocaleString()+'点';s.textContent=(oya==='oya'?'親':'子')+' '+fu+'符 '+han+'翻 ロン';if(honba>0)d.textContent='本場 +'+honba*300+'点';}else{m.textContent=v;s.textContent=(oya==='oya'?'親':'子')+' '+fu+'符 '+han+'翻 ツモ';}}
+}
+
+// ===== 符計算 =====
+let fuAgari='ron',fuMenzen=true,mentsuList=[];
+function setFuAgari(v){fuAgari=v;document.getElementById('fu-ron-btn').className='toggle-btn'+(v==='ron'?' active':'');document.getElementById('fu-tsumo-btn').className='toggle-btn'+(v==='tsumo'?' active':'');calcFu();}
+function setFuMenzen(v){fuMenzen=v;document.getElementById('fu-menzen-btn').className='toggle-btn'+(v?' active':'');document.getElementById('fu-naki-btn').className='toggle-btn'+(!v?' active':'');calcFu();}
+function addMentsu(){if(mentsuList.length>=4)return;mentsuList.push({type:'shuntsu',tile:'chanta',naki:false});renderMentsu();calcFu();}
+function removeMentsu(i){mentsuList.splice(i,1);renderMentsu();calcFu();}
+function renderMentsu(){
+  const c=document.getElementById('mentsu-list');
+  c.innerHTML=mentsuList.map((m,i)=>`<div style="background:#f8f8f8;border-radius:8px;padding:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px;font-weight:600">面子${i+1}</span><button onclick="removeMentsu(${i})" style="border:none;background:none;color:#c00;cursor:pointer;font-size:13px">削除</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><select onchange="mentsuList[${i}].type=this.value;renderMentsu();calcFu()" style="font-size:13px;padding:6px;border:1px solid #ddd;border-radius:6px"><option value="shuntsu" ${m.type==='shuntsu'?'selected':''}>順子（0符）</option><option value="koutsu" ${m.type==='koutsu'?'selected':''}>刻子</option><option value="kantsu" ${m.type==='kantsu'?'selected':''}>槓子</option></select><select onchange="mentsuList[${i}].tile=this.value;calcFu()" style="font-size:13px;padding:6px;border:1px solid #ddd;border-radius:6px" ${m.type==='shuntsu'?'disabled':''}><option value="chanta" ${m.tile==='chanta'?'selected':''}>中張牌</option><option value="yaocyu" ${m.tile==='yaocyu'?'selected':''}>幺九牌</option></select></div><label style="font-size:13px;display:flex;align-items:center;gap:6px;margin-top:6px"><input type="checkbox" ${m.naki?'checked':''} onchange="mentsuList[${i}].naki=this.checked;calcFu()" ${m.type==='shuntsu'?'disabled':''}>鳴き（明刻・明槓）</label></div>`).join('');
+}
+function calcFu(){
+  const jantai=parseInt(document.getElementById('fu-jantai').value),machi=parseInt(document.getElementById('fu-machi').value);
+  let items=[];
+  const base=fuAgari==='tsumo'&&fuMenzen?20:30;
+  items.push({name:'基本符',val:base});
+  if(fuAgari==='tsumo')items.push({name:'ツモ符',val:2});
+  if(jantai>0)items.push({name:'雀頭（役牌）',val:2});
+  if(machi>0)items.push({name:'待ち符',val:2});
+  mentsuList.forEach((m,i)=>{if(m.type==='shuntsu')return;const b=m.tile==='yaocyu'?4:2;const v=m.type==='koutsu'?(m.naki?b:b*2):(m.naki?b*4:b*8);items.push({name:`面子${i+1}（${m.type==='koutsu'?'刻子':'槓子'}・${m.tile==='yaocyu'?'幺九':'中張'}・${m.naki?'明':'暗'}）`,val:v});});
+  const total=items.reduce((s,x)=>s+x.val,0),rounded=Math.ceil(total/10)*10;
+  document.getElementById('fu-result-area').style.display='block';
+  document.getElementById('fu-breakdown').innerHTML=items.map(x=>`<div class="fu-row"><span style="font-size:13px">${x.name}</span><span style="font-size:13px;font-weight:600;color:#1a56db">+${x.val}符</span></div>`).join('');
+  document.getElementById('fu-total-val').textContent=rounded+'符';
+  document.getElementById('fu-total-sub').textContent=`計算値${total}符 → 切り上げ${rounded}符`;
+}
+
+// ===== チップ =====
+function initChipPlayers(){
+  const c=document.getElementById('chip-players'),names=['東家','南家','西家','北家'];
+  c.innerHTML=names.map(n=>`<div style="display:grid;grid-template-columns:1fr 100px;gap:8px;align-items:center;margin-bottom:10px"><input type="text" class="cp-name" value="${n}" onchange="calcChip()"><div style="display:flex;align-items:center;gap:6px"><input type="number" class="cp-chips" value="0" min="-50" max="50" onchange="calcChip()" style="width:70px;text-align:center"><span style="font-size:13px;color:#888">枚</span></div></div>`).join('');
+}
+function calcChip(){
+  const chipVal=parseInt(document.getElementById('chip-val').value)||500;
+  const names=document.querySelectorAll('.cp-name'),chips=document.querySelectorAll('.cp-chips');
+  const players=Array.from(names).map((n,i)=>({name:n.value,chips:parseInt(chips[i].value)||0}));
+  const total=players.reduce((s,p)=>s+p.chips,0);
+  document.getElementById('chip-result').style.display='block';
+  document.getElementById('chip-result-content').innerHTML=players.map(p=>{const y=p.chips*chipVal;return`<div class="chip-player-row"><div><strong>${p.name}</strong><span style="font-size:12px;color:#888;margin-left:6px">${p.chips}枚</span></div><div class="${y>0?'pos':y<0?'neg':''}" style="font-size:18px;font-weight:700">${y>=0?'+':''}${y.toLocaleString()}円</div></div>`;}).join('')+`<div style="margin-top:8px;font-size:12px;color:${total===0?'#1e6b3c':'#c00'};text-align:right">合計${total}枚${total===0?' ✅':' ⚠️'}</div>`;
+}
+
+// ===== 場代 =====
+let bashoNin=4;
+function setBashoNin(n,btn){bashoNin=n;document.querySelectorAll('#tab-basho .toggle-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');calcBasho();}
+function calcBasho(){
+  const fee=parseInt(document.getElementById('basho-fee').value)||0,count=parseInt(document.getElementById('basho-count').value)||1,total=fee*bashoNin*count;
+  document.getElementById('basho-total').textContent=total.toLocaleString()+'円';
+  document.getElementById('basho-detail').textContent=`${fee}円 × ${bashoNin}人 × ${count}半荘 = ${total.toLocaleString()}円`;
+}
+
+// ===== 役一覧 =====
+const YAKU=[{name:'立直',han:'1',naki:'不可',desc:'門前でリーチ宣言'},{name:'門前清自摸和',han:'1',naki:'不可',desc:'門前でツモ'},{name:'平和',han:'1',naki:'不可',desc:'すべて順子・両面待ち'},{name:'断么九',han:'1',naki:'1',desc:'1・9・字牌なし'},{name:'役牌（三元牌）',han:'1',naki:'1',desc:'中・発・白の刻子'},{name:'役牌（場風）',han:'1',naki:'1',desc:'場の風牌の刻子'},{name:'役牌（自風）',han:'1',naki:'1',desc:'自分の風牌の刻子'},{name:'一盃口',han:'1',naki:'不可',desc:'同じ順子が2組'},{name:'海底摸月',han:'1',naki:'1',desc:'最後の牌でツモ'},{name:'河底撈魚',han:'1',naki:'1',desc:'最後の捨て牌でロン'},{name:'槍槓',han:'1',naki:'1',desc:'加槓の牌でロン'},{name:'嶺上開花',han:'1',naki:'1',desc:'槓後のツモで和了'},{name:'三色同順',han:'2',naki:'1',desc:'三色で同じ順子'},{name:'三色同刻',han:'2',naki:'2',desc:'三色で同じ刻子'},{name:'一気通貫',han:'2',naki:'1',desc:'123・456・789を一色で'},{name:'七対子',han:'2',naki:'不可',desc:'7種の対子（25符固定）'},{name:'対々和',han:'2',naki:'2',desc:'すべて刻子'},{name:'三暗刻',han:'2',naki:'2',desc:'暗刻が3組'},{name:'小三元',han:'2',naki:'2',desc:'三元牌2刻子+1雀頭'},{name:'混全帯么九',han:'2',naki:'1',desc:'各面子に1・9・字牌'},{name:'二盃口',han:'3',naki:'不可',desc:'同じ順子が2組×2'},{name:'混一色',han:'3',naki:'2',desc:'一色＋字牌'},{name:'純全帯么九',han:'3',naki:'2',desc:'各面子に1か9'},{name:'清一色',han:'6',naki:'5',desc:'すべて一色'},{name:'天和',han:'役満',naki:'不可',desc:'親が配牌で和了'},{name:'地和',han:'役満',naki:'不可',desc:'子が第一ツモで和了'},{name:'大三元',han:'役満',naki:'役満',desc:'三元牌を3刻子'},{name:'四暗刻',han:'役満',naki:'不可',desc:'暗刻4組'},{name:'国士無双',han:'役満',naki:'不可',desc:'么九牌13種＋1'},{name:'字一色',han:'役満',naki:'役満',desc:'すべて字牌'},{name:'緑一色',han:'役満',naki:'役満',desc:'發と特定の牌のみ'},{name:'九蓮宝燈',han:'役満',naki:'不可',desc:'一色で特定の形'},{name:'清老頭',han:'役満',naki:'役満',desc:'すべて1か9'},{name:'四槓子',han:'役満',naki:'役満',desc:'槓子4組'},{name:'小四喜',han:'役満',naki:'役満',desc:'風牌3刻子+1雀頭'},{name:'大四喜',han:'W役満',naki:'W役満',desc:'風牌4刻子'}];
+function renderYaku(f){document.getElementById('yaku-body').innerHTML=YAKU.filter(y=>f==='all'||(f==='mangan'&&y.han.includes('役満'))||(f==='1'&&y.han==='1')||(f==='2'&&y.han==='2')||(f==='3+'&&['3','4','5','6'].includes(y.han))).map(y=>{const hc=y.han.includes('役満')?'b-red':parseInt(y.han)>=3?'b-amber':y.han==='2'?'b-blue':'b-gray';const nc=y.naki==='不可'?'b-red':y.naki==='役満'?'b-amber':'b-green';return`<tr><td><strong>${y.name}</strong><br><span style="font-size:11px;color:#888">${y.desc}</span></td><td><span class="badge ${hc}">${y.han}</span></td><td><span class="badge ${nc}">${y.naki}</span></td></tr>`;}).join('');}
+function filterYaku(f,btn){document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderYaku(f);}
+
+// ===== セッション管理 =====
+let session=null;
+let savedSessions=JSON.parse(localStorage.getItem('mahjong-sessions')||'[]');
+let sessionMembers=[];
+let sessionNin=4;
+
+const COLORS=['#E74C3C','#3498DB','#2ECC71','#F39C12','#9B59B6'];
+
+function setSNin(n){
+  sessionNin=n;
+  document.getElementById('snin3').className='toggle-btn'+(n===3?' active':'');
+  document.getElementById('snin4').className='toggle-btn'+(n===4?' active':'');
+  const is3=n===3;
+  document.getElementById('s-mochi-row').style.display=is3?'none':'flex';
+  document.getElementById('s-kaeshi-row').style.display=is3?'none':'flex';
+  if(is3){document.getElementById('s-uma').value='10-20';}
+  else{document.getElementById('s-uma').value='10-30';}
+}
+
+function addMember(){
+  if(sessionMembers.length>=5)return;
+  const name=prompt('メンバー名を入力');
+  if(!name)return;
+  sessionMembers.push(name.trim());
+  renderMemberList();
+}
+function removeMemberFromList(i){sessionMembers.splice(i,1);renderMemberList();}
+function renderMemberList(){
+  document.getElementById('member-list').innerHTML=sessionMembers.map((n,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="flex:1;font-size:14px">${n}</span><button onclick="removeMemberFromList(${i})" style="border:none;background:none;color:#c00;cursor:pointer;font-size:12px">削除</button></div>`).join('');
+}
+
+function startSession(){
+  if(sessionMembers.length<sessionNin){alert(`メンバーが${sessionNin}人以上必要です`);return;}
+  const uma=document.getElementById('s-uma').value;
+  const mochi=sessionNin===3?30000:parseInt(document.getElementById('s-mochi').value);
+  const kaeshi=sessionNin===3?40000:parseInt(document.getElementById('s-kaeshi').value);
+  session={
+    id:Date.now(),
+    date:new Date().toLocaleDateString('ja-JP'),
+    members:[...sessionMembers],
+    nin:sessionNin,
+    uma,mochi,kaeshi,
+    basho:0,
+    rate:parseInt(document.getElementById('s-rate').value)||100,
+    tobi:parseInt(document.getElementById('s-tobi').value)||0,
+    tobiYen:parseInt(document.getElementById('s-tobi').value)||0,
+    hanzas:[],
+    finished:false
+  };
+  document.getElementById('session-start-area').style.display='none';
+  document.getElementById('session-active-area').style.display='block';
+  renderSessionActive();
+}
+
+function getUmaVals(uma,nin){
+  const map4={'10-30':[30,10,-10,-30],'5-10':[10,5,-5,-10],'20-40':[40,20,-20,-40],'0-30':[30,0,0,-30]};
+  const map3={'10-20':[20,10,-10],'5-10':[10,5,-5],'0-20':[20,0,-20]};
+  return nin===3?map3[uma]||[20,10,-10]:map4[uma]||[30,10,-10,-30];
+}
+
+function calcHanzaResult(scores,uma,mochi,kaeshi,nin){
+  const umaVals=getUmaVals(uma,nin);
+  const oka=(kaeshi-mochi)*nin/1000;
+  const ranked=[...scores].sort((a,b)=>b.score-a.score);
+  ranked.forEach((p,rank)=>{
+    p.base=Math.round((p.score-kaeshi)/1000);
+    p.uma=umaVals[rank];
+    p.rank=rank+1;
+    p.final=p.base+p.uma+(rank===0?oka:0);
+  });
+  return ranked;
+}
+
+function getMemberTotals(){
+  const totals={};
+  session.members.forEach(m=>totals[m]=0);
+  session.hanzas.forEach(h=>{
+    h.result.forEach(p=>{
+      if(totals[p.name]!==undefined)totals[p.name]+=Math.round(p.final);
+    });
+  });
+  return totals;
+}
+
+// 飛び賞の円収支（飛んだ人が tobiYen を払い、その半荘の他参加者で山分け）
+function getTobiYenTotals(){
+  const tobiTotals={};
+  session.members.forEach(m=>tobiTotals[m]=0);
+  const tobiYen=session.tobiYen||0;
+  if(tobiYen<=0)return tobiTotals;
+  session.hanzas.forEach(h=>{
+    if(!h.tobi||h.tobi.length===0)return;
+    h.tobi.forEach(loser=>{
+      if(tobiTotals[loser]===undefined)return;
+      // 飛んだ人が支払い
+      tobiTotals[loser]-=tobiYen;
+      // その半荘の他の参加者で山分け
+      const winners=h.members.filter(m=>m!==loser);
+      const share=tobiYen/winners.length;
+      winners.forEach(w=>{if(tobiTotals[w]!==undefined)tobiTotals[w]+=share;});
+    });
+  });
+  // 端数を丸める
+  Object.keys(tobiTotals).forEach(k=>tobiTotals[k]=Math.round(tobiTotals[k]));
+  return tobiTotals;
+}
+
+let selectedHanzaMembers=[];
+function renderSessionActive(){
+  const s=session;
+  document.getElementById('session-title-text').textContent=`${s.date} セッション`;
+  document.getElementById('session-info-text').textContent=`${s.members.join('・')} / ウマ${s.uma} / レート${s.rate}円`;
+  document.getElementById('session-badge').textContent=`第${s.hanzas.length}局`;
+
+  // メンバー選択（デフォルト先頭nin人）
+  if(selectedHanzaMembers.length===0)selectedHanzaMembers=s.members.slice(0,s.nin);
+  document.getElementById('hanza-member-select').innerHTML=s.members.map(m=>`<span class="member-chip ${selectedHanzaMembers.includes(m)?'selected':''}" onclick="toggleHanzaMember('${m}')">${m}</span>`).join('');
+
+  renderHanzaInputs();
+  renderCurrentTotals();
+  renderHanzaHistory();
+  renderGraph();
+  calcTotalSeisan();
+}
+
+function toggleHanzaMember(name){
+  if(selectedHanzaMembers.includes(name)){
+    if(selectedHanzaMembers.length<=session.nin)return;
+    selectedHanzaMembers=selectedHanzaMembers.filter(m=>m!==name);
+  } else {
+    if(selectedHanzaMembers.length>=session.nin)selectedHanzaMembers.shift();
+    selectedHanzaMembers.push(name);
+  }
+  document.getElementById('hanza-member-select').innerHTML=session.members.map(m=>`<span class="member-chip ${selectedHanzaMembers.includes(m)?'selected':''}" onclick="toggleHanzaMember('${m}')">${m}</span>`).join('');
+  renderHanzaInputs();
+}
+
+function renderHanzaInputs(){
+  const tobiOn=session.tobiYen>0;
+  document.getElementById('hanza-inputs').innerHTML=selectedHanzaMembers.map((m,i)=>`<div style="display:grid;grid-template-columns:1fr 100px ${tobiOn?'auto':''};gap:8px;align-items:center;margin-bottom:8px"><span style="font-size:14px;font-weight:500">${m}</span><input type="number" id="hi-${i}" value="${session.nin===3?30000:25000}" min="-99999" max="999999" style="text-align:right">${tobiOn?`<label style="font-size:11px;color:#c00;display:flex;align-items:center;gap:3px;min-width:0"><input type="checkbox" id="tobi-${i}">飛んだ</label>`:''}</div>`).join('');
+}
+
+function addHanza(){
+  const members=selectedHanzaMembers;
+  if(members.length!==session.nin){alert(`${session.nin}人を選択してください`);return;}
+  const scores=members.map((name,i)=>({name,score:parseInt(document.getElementById('hi-'+i).value)||0}));
+  const total=scores.reduce((s,p)=>s+p.score,0);
+  const expected=session.mochi*session.nin;
+  if(Math.abs(total-expected)>100){if(!confirm(`点数合計が${total.toLocaleString()}点です（本来${expected.toLocaleString()}点）。続けますか？`))return;}
+  // トビ判定
+  let tobiPeople=[];
+  if(session.tobiYen>0){
+    members.forEach((name,i)=>{const cb=document.getElementById('tobi-'+i);if(cb&&cb.checked)tobiPeople.push(name);});
+  }
+  const result=calcHanzaResult(scores,session.uma,session.mochi,session.kaeshi,session.nin);
+  session.hanzas.push({id:Date.now(),members:[...members],scores,result,tobi:tobiPeople});
+  renderSessionActive();
+}
+
+// 半荘削除
+function deleteHanza(id){
+  if(!confirm('この半荘を削除しますか？'))return;
+  session.hanzas=session.hanzas.filter(h=>h.id!==id);
+  renderSessionActive();
+}
+// 半荘編集
+function editHanza(id){
+  const hz=session.hanzas.find(h=>h.id===id);
+  if(!hz)return;
+  hz.scores.forEach((sc)=>{
+    const v=prompt(`${sc.name} の点数`,sc.score);
+    if(v!==null)sc.score=parseInt(v)||0;
+  });
+  if(session.tobiYen>0){
+    hz.tobi=[];
+    hz.scores.forEach(sc=>{if(confirm(`${sc.name} は飛びましたか？`))hz.tobi.push(sc.name);});
+  }
+  hz.result=calcHanzaResult(hz.scores,session.uma,session.mochi,session.kaeshi,session.nin);
+  renderSessionActive();
+}
+
+function renderCurrentTotals(){
+  const totals=getMemberTotals();
+  const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('current-totals').innerHTML=sorted.map(([name,val],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #f0f0f0"><div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:${COLORS[session.members.indexOf(name)]};display:inline-block"></span>${name}</div><div class="${val>0?'pos':val<0?'neg':''}" style="font-size:18px">${val>=0?'+':''}${val}</div></div>`).join('');
+}
+
+function renderHanzaHistory(){
+  const h=session.hanzas;
+  if(h.length===0){document.getElementById('hanza-history-card').style.display='none';return;}
+  document.getElementById('hanza-history-card').style.display='block';
+  const rc=['r1','r2','r3','r4','r5'];
+  document.getElementById('hanza-history-list').innerHTML=[...h].reverse().map((hz,ri)=>{
+    const i=h.length-1-ri;
+    const tobiTxt=(hz.tobi&&hz.tobi.length)?`<span style="color:#c00;font-size:11px">💥${hz.tobi.join('・')}が飛び</span>`:'';
+    return`<div style="border-top:1px solid #f0f0f0;padding:10px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:12px;color:#aaa">第${i+1}半荘 / ${hz.members.join('・')} ${tobiTxt}</span>
+        <span><button onclick="editHanza(${hz.id})" style="border:none;background:none;color:#1a56db;cursor:pointer;font-size:12px">編集</button><button onclick="deleteHanza(${hz.id})" style="border:none;background:none;color:#c00;cursor:pointer;font-size:12px">削除</button></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(${hz.result.length},1fr);gap:6px">${[...hz.result].sort((a,b)=>a.rank-b.rank).map(p=>`<div><div style="font-size:11px;color:#888"><span class="rank-badge ${rc[p.rank-1]}" style="width:16px;height:16px;line-height:16px;font-size:9px">${p.rank}</span>${p.name}</div><div class="${p.final>0?'pos':p.final<0?'neg':''}" style="font-size:14px;font-weight:600">${Math.round(p.final)>=0?'+':''}${Math.round(p.final)}</div></div>`).join('')}</div></div>`;
+  }).join('');
+}
+
+function renderGraph(){
+  if(session.hanzas.length===0){document.getElementById('graph-card').style.display='none';return;}
+  document.getElementById('graph-card').style.display='block';
+  const canvas=document.getElementById('scoreChart');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.parentElement.clientWidth-32;
+  canvas.width=W*2;canvas.height=400;canvas.style.width=W+'px';canvas.style.height='200px';
+  ctx.scale(2,2);
+  const w=W,h=200,pad={t:20,r:20,b:30,l:40};
+  ctx.clearRect(0,0,w,h);
+  const totals={};session.members.forEach(m=>totals[m]=[0]);
+  session.hanzas.forEach(hz=>{
+    session.members.forEach(m=>{
+      const prev=totals[m][totals[m].length-1];
+      const r=hz.result.find(p=>p.name===m);
+      totals[m].push(prev+(r?Math.round(r.final):0));
+    });
+  });
+  const allVals=Object.values(totals).flat();
+  const minV=Math.min(...allVals),maxV=Math.max(...allVals);
+  const range=Math.max(maxV-minV,10);
+  const toX=i=>(pad.l+(i/(session.hanzas.length))*(w-pad.l-pad.r));
+  const toY=v=>(pad.t+(1-(v-minV)/range)*(h-pad.t-pad.b));
+  // grid
+  ctx.strokeStyle='#eee';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=pad.t+i*(h-pad.t-pad.b)/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();}
+  // zero line
+  const zy=toY(0);
+  ctx.strokeStyle='#ccc';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(pad.l,zy);ctx.lineTo(w-pad.r,zy);ctx.stroke();ctx.setLineDash([]);
+  // lines
+  session.members.forEach((m,mi)=>{
+    const vals=totals[m];
+    ctx.strokeStyle=COLORS[mi];ctx.lineWidth=2.5;ctx.beginPath();
+    vals.forEach((v,i)=>{const x=toX(i),y=toY(v);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.stroke();
+    // dots
+    vals.forEach((v,i)=>{const x=toX(i),y=toY(v);ctx.fillStyle=COLORS[mi];ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();});
+    // last label
+    const lx=toX(vals.length-1),ly=toY(vals[vals.length-1]);
+    ctx.fillStyle=COLORS[mi];ctx.font='bold 11px -apple-system';ctx.textAlign='left';
+    const lv=vals[vals.length-1];ctx.fillText((lv>=0?'+':'')+lv,lx+5,ly+4);
+  });
+  // x axis labels
+  ctx.fillStyle='#aaa';ctx.font='10px -apple-system';ctx.textAlign='center';
+  session.hanzas.forEach((_,i)=>{ctx.fillText(i+1,toX(i+1),h-pad.b+14);});
+  ctx.fillText('開始',pad.l,h-pad.b+14);
+  // legend
+  document.getElementById('graph-legend').innerHTML=session.members.map((m,i)=>`<span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:${COLORS[i]};border-radius:2px;display:inline-block"></span>${m}</span>`).join('');
+}
+
+function calcTotalSeisan(){
+  if(!session||session.hanzas.length===0){document.getElementById('total-seisan-content').innerHTML='<div style="font-size:13px;color:#aaa;text-align:center;padding:16px">半荘を1回以上記録してから精算できます</div>';return;}
+  session.basho=parseInt(document.getElementById('s-basho').value)||0;
+  const totals=getMemberTotals();
+  const tobiTotals=getTobiYenTotals();
+  const rate=session.rate;
+  const basho=session.basho;
+  const hanzaCount=session.hanzas.length;
+  // net = 点棒円換算 + 飛び賞 - 場代 で並べ替え
+  const netMap={};
+  session.members.forEach(m=>{
+    const yen=Math.round(totals[m]*rate);
+    const bashoYen=basho*hanzaCount;
+    netMap[m]=yen+tobiTotals[m]-bashoYen;
+  });
+  const sorted=Object.entries(totals).sort((a,b)=>netMap[b[0]]-netMap[a[0]]);
+  const rc=['r1','r2','r3','r4','r5'];
+  const hasTobi=(session.tobiYen||0)>0;
+  const html=sorted.map(([name,pts],i)=>{
+    const yen=Math.round(pts*rate);
+    const bashoYen=basho*hanzaCount;
+    const tobi=tobiTotals[name];
+    const net=netMap[name];
+    return`<div class="player-result-row">
+      <div><span class="rank-badge ${rc[i]}">${i+1}</span><strong>${name}</strong></div>
+      <div style="text-align:right">
+        <div class="${net>0?'pos':net<0?'neg':''}" style="font-size:20px;font-weight:700">${net>=0?'+':''}${net.toLocaleString()}円</div>
+        <div style="font-size:11px;color:#aaa">点棒${pts>=0?'+':''}${pts}（${yen>=0?'+':''}${yen.toLocaleString()}円）${hasTobi?` / 飛び${tobi>=0?'+':''}${tobi.toLocaleString()}円`:''} / 場代-${bashoYen.toLocaleString()}円</div>
+      </div></div>`;
+  }).join('');
+  document.getElementById('total-seisan-content').innerHTML=html+`<div style="font-size:12px;color:#aaa;margin-top:10px;text-align:right">${hanzaCount}半荘 / 場代${basho}円×${hanzaCount}回 / レート${rate}円${hasTobi?` / 飛び賞${session.tobiYen.toLocaleString()}円`:''}</div>`;
+}
+
+function abortSession(){
+  if(!confirm('セッションを中断しますか？（保存されません）'))return;
+  session=null;selectedHanzaMembers=[];sessionMembers=[];
+  document.getElementById('session-active-area').style.display='none';
+  document.getElementById('session-start-area').style.display='block';
+  renderMemberList();
+}
+
+function confirmEndSession(){
+  if(!session)return;
+  if(session.hanzas.length===0){if(!confirm('半荘の記録がありません。このままセッションを破棄しますか？')){return;}session=null;selectedHanzaMembers=[];sessionMembers=[];document.getElementById('session-active-area').style.display='none';document.getElementById('session-start-area').style.display='block';renderMemberList();return;}
+  session.basho=parseInt(document.getElementById('s-basho').value)||0;
+  if(!confirm(`場代${session.basho}円/人・半荘で精算し、保存しますか？`))return;
+  session.finished=true;
+  const totals=getMemberTotals();
+  session.finalTotals=totals;
+  session.finalTobi=getTobiYenTotals();
+  savedSessions.unshift(session);
+  localStorage.setItem('mahjong-sessions',JSON.stringify(savedSessions));
+  session=null;
+  selectedHanzaMembers=[];
+  sessionMembers=[];
+  document.getElementById('session-active-area').style.display='none';
+  document.getElementById('session-start-area').style.display='block';
+  renderMemberList();
+  renderHistory();
+  switchTab('history');
+  alert('セッションを保存しました！');
+}
+
+// ===== 記録 =====
+function renderHistory(){
+  const list=document.getElementById('history-list'),noH=document.getElementById('no-history');
+  if(!savedSessions.length){noH.style.display='block';list.innerHTML='';return;}
+  noH.style.display='none';
+  list.innerHTML=savedSessions.map((s,i)=>{
+    const tobi=s.finalTobi||{};
+    const netOf=(name,pts)=>Math.round(pts*s.rate)+(tobi[name]||0)-s.basho*s.hanzas.length;
+    const sorted=Object.entries(s.finalTotals||{}).sort((a,b)=>netOf(b[0],b[1])-netOf(a[0],a[1]));
+    return`<div class="session-item" onclick="showSessionDetail(${i})">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:600">${s.date}</span>
+        <span style="font-size:12px;color:#aaa">${s.hanzas.length}半荘 / ${s.nin}人</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(${Math.min(sorted.length,4)},1fr);gap:6px">
+        ${sorted.slice(0,4).map(([name,pts],ri)=>{
+          const net=netOf(name,pts);
+          const rc=['r1','r2','r3','r4'];
+          return`<div><div style="font-size:11px;color:#888"><span class="rank-badge ${rc[ri]}" style="width:16px;height:16px;line-height:16px;font-size:9px">${ri+1}</span>${name}</div>
+          <div class="${net>0?'pos':net<0?'neg':''}" style="font-size:14px;font-weight:600">${net>=0?'+':''}${net.toLocaleString()}円</div></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showSessionDetail(i){
+  const s=savedSessions[i];
+  const tobi=s.finalTobi||{};
+  const hasTobi=(s.tobiYen||0)>0;
+  const netOf=(name,pts)=>Math.round(pts*s.rate)+(tobi[name]||0)-s.basho*s.hanzas.length;
+  const sorted=Object.entries(s.finalTotals||{}).sort((a,b)=>netOf(b[0],b[1])-netOf(a[0],a[1]));
+  const rc=['r1','r2','r3','r4','r5'];
+  document.getElementById('modal-title').textContent=`${s.date} セッション詳細`;
+  document.getElementById('modal-content').innerHTML=`
+    <div style="font-size:13px;color:#888;margin-bottom:12px">${s.members.join('・')} / ウマ${s.uma} / ${s.hanzas.length}半荘${hasTobi?` / 飛び賞${s.tobiYen.toLocaleString()}円`:''}</div>
+    <div class="section-title" style="font-size:14px">トータル精算</div>
+    ${sorted.map(([name,pts],ri)=>{
+      const yen=Math.round(pts*s.rate);
+      const bashoYen=s.basho*s.hanzas.length;
+      const tb=tobi[name]||0;
+      const net=netOf(name,pts);
+      return`<div class="player-result-row"><div><span class="rank-badge ${rc[ri]}">${ri+1}</span>${name}</div>
+        <div style="text-align:right"><div class="${net>0?'pos':net<0?'neg':''}" style="font-size:18px;font-weight:700">${net>=0?'+':''}${net.toLocaleString()}円</div>
+        <div style="font-size:11px;color:#aaa">点棒${pts>=0?'+':''}${pts}${hasTobi?` / 飛び${tb>=0?'+':''}${tb.toLocaleString()}円`:''}</div></div></div>`;
+    }).join('')}
+    <div style="margin-top:16px"><div class="section-title" style="font-size:14px">半荘ごとの結果</div>
+    ${s.hanzas.map((h,hi)=>`<div style="border-top:1px solid #f0f0f0;padding:8px 0"><div style="font-size:12px;color:#aaa;margin-bottom:4px">第${hi+1}半荘</div>
+      <div style="display:grid;grid-template-columns:repeat(${h.result.length},1fr);gap:4px">
+        ${[...h.result].sort((a,b)=>a.rank-b.rank).map(p=>`<div style="font-size:12px"><div style="color:#888">${p.name}</div><div class="${p.final>0?'pos':p.final<0?'neg':''}" style="font-weight:600">${Math.round(p.final)>=0?'+':''}${Math.round(p.final)}</div></div>`).join('')}
+      </div></div>`).join('')}
+    </div>`;
+  document.getElementById('session-modal').style.display='flex';
+}
+
+function closeModal(e){if(e.target.id==='session-modal')document.getElementById('session-modal').style.display='none';}
+
+// ===== タブ切替 =====
+const TABS=['session','score','fu','chip','basho','yaku','history'];
+function switchTab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.content').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelectorAll('.tab')[TABS.indexOf(t)].classList.add('active');}
+
+// ===== 初期化 =====
+initChipPlayers();calcScore();calcBasho();renderYaku('all');renderHistory();renderMentsu();calcFu();setSNin(4);
+</script>
+</body>
+</html>
